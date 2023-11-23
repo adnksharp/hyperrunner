@@ -1,37 +1,33 @@
 #define FREQ 5000
 #define RES 8
-#define LED 2
+#define LED 15
 
-#define TRIGGER_F 18
-#define ECHO_F 5
+#define encoder_flm 21  // main encoder pin interrupt 
+#define encoder_flc 18
+#define MOTOR_FLR 25    // front-left reverse pin motor
+#define MOTOR_FLD 26    // front-left drive pin motor
+#define reversefl 0
+#define drivefl 1
 
-#define TRIGGER_B 16
-#define ECHO_B 17
+#define encoder_frm 17
+#define encoder_frc 19
+#define MOTOR_FRR 14
+#define MOTOR_FRD 27
+#define reversefr 2
+#define drivefr 3
 
-#define ENCODER_FLA 34
-#define ENCODER_FLB 35
-#define MOTOR_FLA 32
-#define MOTOR_FLB 33
-#define CHANNEL1A 0
-#define CHANNEL1B 1
+#define encoder_blm 23
+#define encoder_blc 22
+#define MOTOR_BLR 32
+#define MOTOR_BLD 33
+#define reversebl 4
+#define drivebl 5
 
-#define ENCODER_FRA 25
-#define ENCODER_FRB 26
-#define MOTOR_FRA 27
-#define MOTOR_FRB 14
-#define CHANNEL2A 2
-#define CHANNEL2B 3
+#define encoder_brm 16
+#define encoder_brc 4
+#define MOTOR_BRR 2
+#define MOTOR_BRD 12
+#define reversebr 6
+#define drivebr 7
 
-#define ENCODER_BLA 23
-#define ENCODER_BLB 22
-#define MOTOR_BLA 21
-#define MOTOR_BLB 19
-#define CHANNEL3A 4
-#define CHANNEL3B 5
-
-#define ENCODER_BRA 12
-#define ENCODER_BRB 13
-#define MOTOR_BRA 4
-#define MOTOR_BRB 2
-#define CHANNEL4A 6
-#define CHANNEL4B 7
+#define MY_Rev 494

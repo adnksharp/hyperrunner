@@ -96,7 +96,7 @@ app.post('/init', function (req, res) {
         } else {
             var infile = JSON.parse(data)
             infile['rpm']['reference'] = rf.speed
-            infile['direction']['reference'] = rf.direction
+            infile['direction']['reference'] = [rf.direction]
             infile['mode'] = 'run'
             fs.writeFile('../data/now.json', JSON.stringify(infile), function (err) {
                 if (err) {
@@ -113,7 +113,7 @@ app.post('/init', function (req, res) {
         } else {
             var infile = JSON.parse(data)
             infile['rpm']['reference'] = rf.speed
-            infile['direction']['reference'] = rf.direction
+            infile['direction']['reference'] = [rf.direction]
             fs.writeFile('../data/history.json', JSON.stringify(infile), function (err) {
                 if (err) {
                     console.log(err)
@@ -154,7 +154,7 @@ app.get('/stop', function (req, res) {
 
 app.post('/update', function (req, res) {
     var now = req.body
-    console.log("Update: " + JSON.stringify(now))
+    console.log("Update...")
     fs.writeFile('../data/now.json', JSON.stringify(now), function (err) {
         if (err) {
             console.log(err)
@@ -167,21 +167,33 @@ app.post('/update', function (req, res) {
             res.send('error')
         } else {
             var history = JSON.parse(data)
-            history['time'].push(now.time)
-            history['rpm']['out'].push(now.rpm.out)
-            history['rpm']['reference'].push(now.rpm.reference)
-            history['rpm']['error'].push(now.rpm.error)
-            history['rpm']['percent'][0].push(now.rpm.percent[0])
-            history['rpm']['percent'][1].push(now.rpm.percent[1])
-            history['direction']['out'].push(now.direction.out)
-            history['direction']['reference'].push(now.direction.reference)
-            history['direction']['error'].push(now.direction.error)
-            history['direction']['percent'][0].push(now.direction.percent[0])
-            history['direction']['percent'][1].push(now.direction.percent[1])
-            history['objects']['front'].push(now.objects.front)
-            history['objects']['back'].push(now.objects.back)
-            history['objects']['count'].push(now.objects.count)
-            history['signal'].push(now.signal)
+
+            history['time'].push(now.time[0]) // [0.05
+            history['rpm']['out'].push(now.rpm.out[0])
+            history['rpm']['reference'].push(now.rpm.reference[0])
+            history['rpm']['error'].push(now.rpm.error[0])
+            if (now.rpm.percent[0] == null) {
+                now.rpm.percent[0] = 1
+            } if (now.rpm.percent[1] == null) {
+                now.rpm.percent[1] = 0
+            } if (now.direction.percent[0] == null) {
+                now.direction.percent[0] = 1
+            } if (now.direction.percent[1] == null) {
+                now.direction.percent[1] = 0
+            }
+            history['rpm']['percent'][0].push(now.rpm.percent[0]) // [2
+            history['rpm']['percent'][1].push(now.rpm.percent[1]) // 28]
+            history['direction']['out'].push(now.direction.out[0]) // [0
+            history['direction']['reference'].push(now.direction.reference[0]) // 0]
+            history['direction']['error'].push(now.direction.error[0]) // [0
+            history['direction']['percent'][0].push(now.direction.percent[0]) // [0
+            history['direction']['percent'][1].push(now.direction.percent[1]) // 0]
+            history['objects']['front'].push(now.objects.front[0]) // [0
+            history['objects']['back'].push(now.objects.back[0]) // 0]
+            history['objects']['count'].push(now.objects.count[0]) // [0]
+            if (now.signal[0] != null) {
+                history['signal'].push(now.signal) // 100]
+            }
             fs.writeFile('../data/history.json', JSON.stringify(history), function (err) {
                 if (err) {
                     console.log(err)

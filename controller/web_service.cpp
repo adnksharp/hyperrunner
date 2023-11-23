@@ -56,22 +56,10 @@ void SetWifi()
     Flash(100);
     delay(100);
     Flash(100);
-    Serial.println("Configurando WiFi...");
     WiFi.setSleep(false);
-    Serial.println("SSIDs configurados:");
-    if (stationCount > firstRun)
-    {
-        for (int i = firstRun; i < stationCount; i++)
-        {
-            Serial.println(Station[i].ssid);
-        }
-    }
-    else
-        Serial.println("\tNinguno");
 
     byte mac[6] = {0};
     WiFi.macAddress(mac);
-    Serial.println("MAC: " + String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" + String(mac[2], HEX) + ":" + String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX));
 
     int bestStation = -1;
     long bestRSSI = -1024;
@@ -79,9 +67,7 @@ void SetWifi()
     uint8_t bestBSSID[6];
     if (stationCount > firstRun)
     {
-        Serial.println("\nBuscando redes...");
         int j = WiFi.scanNetworks();
-        Serial.println(String(j) + "\tredes encontradas");
         if (j > 0)
         {
             for (int i = 0; i < j; ++i)
@@ -89,13 +75,11 @@ void SetWifi()
                 String thisSSID = WiFi.SSID(i);
                 int thisRSSI = WiFi.RSSI(i);
                 String thisBSSID = WiFi.BSSIDstr(i);
-                Serial.println(String(i + 1) + " : [" + thisBSSID + "] " + thisSSID + " (" + String(thisRSSI) + ")");
                 for (int k = firstRun; k < stationCount; k++)
                 {
                     if ((strcmp(Station[k].ssid, thisSSID.c_str()) == 0) ||
                         (strcmp(Station[k].ssid, thisBSSID.c_str()) == 0))
                     {
-                        Serial.println("! Red conocida");
                         if (thisRSSI > bestRSSI)
                         {
                             bestStation = k;
@@ -105,16 +89,12 @@ void SetWifi()
                         }
                     }
                 }
-                Serial.println();
             }
         }
     }
 
-    if (bestStation == -1)
-        Serial.println("No se encontró ninguna red conocida");
-    else
+    if (bestStation != -1)
     {
-        Serial.println("Conectando a " + String(bestSSID) + ": [" + String(bestBSSID[0], HEX) + ":" + String(bestBSSID[1], HEX) + ":" + String(bestBSSID[2], HEX) + ":" + String(bestBSSID[3], HEX) + ":" + String(bestBSSID[4], HEX) + ":" + String(bestBSSID[5], HEX) + "]...");
         WiFi.setHostname(cname);
         WiFi.begin(bestSSID, Station[bestStation].pass);
         unsigned long start = millis();
@@ -124,28 +104,19 @@ void SetWifi()
             delay(100);
             if (millis() - start > WIFI_WATCHDOG)
             {
-                Serial.println("No se pudo conectar a la red " + String(bestSSID));
                 break;
             }
         }
         if (WiFi.status() == WL_CONNECTED)
         {
-            Serial.println("Conexión establecida");
-            Serial.println("\nIP: " + WiFi.localIP().toString());
-            Serial.println("MAC: " + WiFi.macAddress());
-            Serial.println("Gateway: " + WiFi.gatewayIP().toString());
-            Serial.println("DNS: " + WiFi.dnsIP().toString());
-            Serial.println("Subnet: " + WiFi.subnetMask().toString());
             ip = WiFi.localIP();
             gateway = WiFi.gatewayIP();
             gw = WiFi.subnetMask();
             if (Station[bestStation].dhcp)
             {
-                Serial.println("DHCP: Activado");
             }
             else
             {
-                Serial.println("DHCP: Desactivado");
                 WiFi.config(ip, gateway, gw);
             }
             URLS();
@@ -160,7 +131,24 @@ String httpRequest(const char *domain, const char *path, bool post, String data)
     if (WiFi.status() == WL_CONNECTED)
     {
         WiFiClient client;
+        // close any connection before send a new request
+        try
+        {
+            client.stop();
+        }
+        catch (const std::exception &e)
+        {
+            Serial.println("Error: " + String(e.what()));
+        }
         HTTPClient http;
+        try
+        {
+            http.end();
+        }
+        catch (const std::exception &e)
+        {
+            Serial.println("Error: " + String(e.what()));
+        }
         http.begin(client, domain + String(path));
         if (post)
         {
@@ -171,7 +159,7 @@ String httpRequest(const char *domain, const char *path, bool post, String data)
         {
             httpCode = http.GET();
         }
-        
+
         if (httpCode > 0)
         {
             if (httpCode == HTTP_CODE_OK)
@@ -199,6 +187,5 @@ String httpRequest(const char *domain, const char *path, bool post, String data)
 void SendDevice(const char *domain)
 {
     String post = "{\"name\":\"" + String(cname) + "\",\"mac\":\"" + WiFi.macAddress() + "\",\"ip\":\"" + WiFi.localIP().toString() + "\",\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",\"dns\":\"" + WiFi.dnsIP().toString() + "\",\"subnet\":\"" + WiFi.subnetMask().toString() + "\",\"signal\":" + String(myRssi()) + "}";
-    Serial.println("Enviando datos del dispositivo...");
     Serial.println(httpRequest(domain, "/device", true, post));
 }
