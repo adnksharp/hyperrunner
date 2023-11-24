@@ -1,19 +1,29 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <Ticker.h>
+#include <PID_v1.h>
 #include "time.h"
 #include "pins.h"
 
 Ticker ticker;
 
-float ref[2] = {1, 1}, err[2] = {0, 0}, out[2] = {0, 0}, percent[2] = {0, 0},
-      Kp[4] = {0, 0}, Ki[4] = {0, 0}, Kd[4] = {0, 0};
+float ref[2] = {1, 1}, err[2] = {0, 0}, out[2] = {0, 0}, percent[2] = {0, 0};
 
-byte Rf[8] = {0, 0}, Yf[8] = {0, 0}, Ef[8] = {0, 0};
-long count[4] = {0, 0, 0, 0};
+byte Rf[8] = {0, 0}, Yf[8] = {0, 0}, yt[2] = {0, 0};
+long count[4] = {0, 0, 0, 0}, 
+     ef[2] = {0, 0}, efl[2] = {0, 0},
+     timers[2] = {0, 0}, ltimers[2] = {0, 0};
 bool history[4] = {false, false, false, false};
 
 byte mode = 0;
+
+double Setpoint[2] = {100.0, 100.0};
+double Input[2], Output[2];
+double Kp[2] = {2.0, 2.0};
+double Ki[2] = {5.0, 5.0};
+double Kd[2] = {1.0, 1.0};
+PID mavel(&Input[0], &Output[0], &Setpoint[0], Kp[0], Ki[0], Kd[0], DIRECT);
+PID mango(&Input[1], &Output[1], &Setpoint[1], Kp[1], Ki[1], Kd[1], DIRECT);
 
 long long initTime = 0, sendTime = 0;
 extern char cname[20];
@@ -40,6 +50,7 @@ void GetJson()
     // print rpm
     ref[0] = obj["rpm"]["reference"][0];
     ref[1] = obj["direction"]["reference"][0];
+
     try
     {
         String modered = obj["mode"];
@@ -53,38 +64,33 @@ void GetJson()
     catch (const std::exception &e)
     {
     }
-    if (aux != mode && mode == 1)
-    {
-        count[0] = 0;
-        count[1] = 0;
-        count[2] = 0;
-        initTime = millis();
-    }
+    Setpoint[0] = ref[0];
+    Setpoint[1] = ref[1];
 }
 
 void SendJson()
 {
-    out[0] = count[2];
+    //out[0] = count[2];
     if (ref[0] == 0)
     {
         err[0] = 0;
         percent[0] = 1;
         percent[1] = 0;
     }
-    else 
+    else
     {
         err[0] = abs(ref[0] - out[0]);
         percent[0] = float(out[0]) / float(ref[0]);
         percent[1] = float(err[0]) / float(ref[0]);
     }
-    out[1] = count[0];
+    //out[1] = count[0];
     if (ref[1] == 0)
     {
         err[1] = 0;
         percent[0] = 1;
         percent[1] = 0;
     }
-    else 
+    else
     {
         err[1] = abs(ref[1] - out[1]);
         percent[0] = float(out[1]) / float(ref[1]);
@@ -119,29 +125,6 @@ void FrontLeftCounter()
         count[0]++;
     else
         count[0]--;
-    if (ref[1] != 0)
-    {
-        if (abs(count[0] - ref[1]) < 4)
-        {
-            Yf[0] = 0;
-            Yf[1] = 0;
-        }
-        else if (count[0] > ref[1])
-        {
-            Yf[0] = 80;
-            Yf[1] = 0;
-        }
-        else if (count[0] < ref[1])
-        {
-            Yf[0] = 0;
-            Yf[1] = 80;
-        }
-    }
-    else
-    {
-        Yf[0] = 0;
-        Yf[1] = 0;
-    }
 }
 
 void FrontRightCounter()
@@ -150,29 +133,6 @@ void FrontRightCounter()
         count[1]++;
     else
         count[1]--;
-    if (ref[1] != 0)
-    {
-        if (abs(count[1] - ref[1]) < 4)
-        {
-            Yf[2] = 0;
-            Yf[3] = 0;
-        }
-        else if (count[1] > ref[1])
-        {
-            Yf[2] = 100;
-            Yf[3] = 0;
-        }
-        else if (count[1] < ref[1])
-        {
-            Yf[2] = 0;
-            Yf[3] = 100;
-        }
-    }
-    else
-    {
-        Yf[2] = 0;
-        Yf[3] = 0;
-    }
 }
 
 void BackCounter()
@@ -181,37 +141,6 @@ void BackCounter()
         count[2]++;
     else
         count[2]--;
-    if (ref[0] != 0)
-    {
-        if (abs(count[2] - ref[0]) < 4)
-        {
-            Yf[4] = 0;
-            Yf[5] = 0;
-            Yf[6] = 0;
-            Yf[7] = 0;
-        }                 //-10 -5 -10      10 15 10
-        else if (count[2] > ref[0])
-        {
-            Yf[4] = 100;
-            Yf[5] = 0;
-            Yf[6] = 100;
-            Yf[7] = 0;
-        }
-        else if (count[2] < ref[0])
-        {
-            Yf[4] = 0;
-            Yf[5] = 100;
-            Yf[6] = 0;
-            Yf[7] = 100;
-        }
-    }
-    else
-    {
-        Yf[4] = 0;
-        Yf[5] = 0;
-        Yf[6] = 0;
-        Yf[7] = 0;
-    }
 }
 
 void setup()
@@ -230,6 +159,8 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(encoder_frm), FrontRightCounter, RISING);
     attachInterrupt(digitalPinToInterrupt(encoder_brm), BackCounter, RISING);
     initTime = millis();
+    mavel.SetMode(AUTOMATIC);
+    mango.SetMode(AUTOMATIC);
 }
 
 void loop()
@@ -258,7 +189,7 @@ void loop()
             count[1] = 0;
         }
     }
-    
+
     if (mode == 1)
     {
         if (millis() - sendTime > 200 && mode != 2)
@@ -266,23 +197,50 @@ void loop()
             SendJson();
             sendTime = millis();
         }
-        if (ref[0] != 0 && count[2] == 0)
-        {
-            ledcWrite(7, 80);
-            delay(100);
-        }
-        if (ref[1] != 0 && count[0] == 0)
-        {
-            ledcWrite(0, 80);
-            ledcWrite(2, 80);
-            delay(100);
-        }
-        for (byte i = 0; i < 8; i++)
-            ledcWrite(i, Yf[i]);
+        Input[0] = calcularVelocidad();
+        mavel.Compute();
+        controlarMotor(Output[0]);
     }
     else
     {
         for (byte i = 0; i < 8; i++)
             ledcWrite(i, 0);
+    }
+}
+
+int calcularVelocidad()
+{
+    int ticksPorVuelta = 486;
+    double tiempoEntreInterrupciones = 0.01; // en segundos
+    double velocidad = (count[2] / ticksPorVuelta) / tiempoEntreInterrupciones * 60.0;
+    out[0] = velocidad;
+    count[2] = 0;
+
+    return velocidad;
+}
+
+void controlarMotor(double output)
+{
+    int velocidadMotor = constrain(output, -255, 255);
+
+    if (velocidadMotor > 0)
+    {
+        digitalWrite(MOTOR_BLR, HIGH);
+        digitalWrite(MOTOR_BRR, HIGH);
+        digitalWrite(MOTOR_BLD, LOW);
+        digitalWrite(MOTOR_BRD, LOW);
+        ledcWrite(4, abs(velocidadMotor));
+        ledcWrite(6, abs(velocidadMotor));
+        Serial.println("uclock");
+    }
+    else
+    {
+        Serial.println("Clock");
+        digitalWrite(MOTOR_BLR, LOW);
+        digitalWrite(MOTOR_BRR, LOW);
+        digitalWrite(MOTOR_BLD, HIGH);
+        digitalWrite(MOTOR_BRD, HIGH);
+        ledcWrite(5, abs(velocidadMotor));
+        ledcWrite(7, abs(velocidadMotor));
     }
 }

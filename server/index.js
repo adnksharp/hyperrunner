@@ -166,42 +166,44 @@ app.post('/update', function (req, res) {
             console.log(err)
             res.send('error')
         } else {
-            var history = JSON.parse(data)
+            try {
+                var history = JSON.parse(data)
 
-            history['time'].push(now.time[0]) // [0.05
-            history['rpm']['out'].push(now.rpm.out[0])
-            history['rpm']['reference'].push(now.rpm.reference[0])
-            history['rpm']['error'].push(now.rpm.error[0])
-            if (now.rpm.percent[0] == null) {
-                now.rpm.percent[0] = 1
-            } if (now.rpm.percent[1] == null) {
-                now.rpm.percent[1] = 0
-            } if (now.direction.percent[0] == null) {
-                now.direction.percent[0] = 1
-            } if (now.direction.percent[1] == null) {
-                now.direction.percent[1] = 0
-            }
-            history['rpm']['percent'][0].push(now.rpm.percent[0]) // [2
-            history['rpm']['percent'][1].push(now.rpm.percent[1]) // 28]
-            history['direction']['out'].push(now.direction.out[0]) // [0
-            history['direction']['reference'].push(now.direction.reference[0]) // 0]
-            history['direction']['error'].push(now.direction.error[0]) // [0
-            history['direction']['percent'][0].push(now.direction.percent[0]) // [0
-            history['direction']['percent'][1].push(now.direction.percent[1]) // 0]
-            history['objects']['front'].push(now.objects.front[0]) // [0
-            history['objects']['back'].push(now.objects.back[0]) // 0]
-            history['objects']['count'].push(now.objects.count[0]) // [0]
-            if (now.signal[0] != null) {
-                history['signal'].push(now.signal) // 100]
-            }
-            fs.writeFile('../data/history.json', JSON.stringify(history), function (err) {
-                if (err) {
-                    console.log(err)
-                    res.send('error')
-                } else {
-                    res.send('ok')
+                history['time'].push(now.time[0]) // [0.05
+                history['rpm']['out'].push(now.rpm.out[0])
+                history['rpm']['reference'].push(now.rpm.reference[0])
+                history['rpm']['error'].push(now.rpm.error[0])
+                if (now.rpm.percent[0] == null) {
+                    now.rpm.percent[0] = 1
+                } if (now.rpm.percent[1] == null) {
+                    now.rpm.percent[1] = 0
+                } if (now.direction.percent[0] == null) {
+                    now.direction.percent[0] = 1
+                } if (now.direction.percent[1] == null) {
+                    now.direction.percent[1] = 0
                 }
-            })
+                history['rpm']['percent'][0].push(now.rpm.percent[0]) // [2
+                history['rpm']['percent'][1].push(now.rpm.percent[1]) // 28]
+                history['direction']['out'].push(now.direction.out[0]) // [0
+                history['direction']['reference'].push(now.direction.reference[0]) // 0]
+                history['direction']['error'].push(now.direction.error[0]) // [0
+                history['direction']['percent'][0].push(now.direction.percent[0]) // [0
+                history['direction']['percent'][1].push(now.direction.percent[1]) // 0]
+                history['objects']['front'].push(now.objects.front[0]) // [0
+                history['objects']['back'].push(now.objects.back[0]) // 0]
+                history['objects']['count'].push(now.objects.count[0]) // [0]
+                if (now.signal[0] != null) {
+                    history['signal'].push(now.signal) // 100]
+                }
+                fs.writeFile('../data/history.json', JSON.stringify(history), function (err) {
+                    if (err) {
+                        console.log(err)
+                        res.send('error')
+                    } else {
+                        res.send('ok')
+                    }
+                })
+            } catch {}
         }
     })
 })
@@ -213,7 +215,13 @@ app.get('/status', function (req, res) {
             res.json({ message: 'error' })
         } else {
             console.log("Status: sended")
-            res.json(JSON.parse(data))
+            let tosend;
+            try {
+                tosend = JSON.parse(data)
+                res.json(tosend)
+            } catch {
+                res.json("{}")
+            }
         }
     })
 })

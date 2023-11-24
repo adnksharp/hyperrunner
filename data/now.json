@@ -1,1 +1,1 @@
-{"time":[10.25],"rpm":{"out":[20],"reference":[23],"error":[3],"percent":[1,1]},"direction":{"out":[0],"reference":[0],"error":[0],"percent":[0,0]},"objects":{"front":[0],"back":[0],"count":[0]},"signal":100,"mode":"pause"}
+{"time":[709.7],"rpm":{"out":[90],"reference":[0],"error":[0],"percent":[1,1]},"direction":{"out":[0],"reference":[0],"error":[0],"percent":[0,0]},"objects":{"front":[0],"back":[0],"count":[0]},"signal":88,"mode":"pause"}
